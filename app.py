@@ -11,16 +11,32 @@ import helper
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from helper import most_common_words
 
-st.sidebar.title("Whatsapp Chat Analyser")
-uploaded_file = st.sidebar.file_uploader("Choose a file")
-if uploaded_file is not None:
-    # To read file as bytes:
-    bytes_data = uploaded_file.getvalue()
-    data = bytes_data.decode("utf-8")
-    # st.text(data)
+st.sidebar.title("WhatsApp Chat Analyzer")
+
+data_source = st.sidebar.radio(
+    "Choose Data Source",
+    ("Use Sample Chat", "Upload Your Chat")
+)
+
+uploaded_file = None
+data = None
+
+if data_source == "Upload Your Chat":
+    uploaded_file = st.sidebar.file_uploader("Upload a chat file")
+    if uploaded_file is not None:
+        data = uploaded_file.read().decode("utf-8")
+        st.sidebar.success("WhatsApp chat loaded , Click Show Analysis Now")
+else:
+    with open("WhatsApp Chat with IMTech CSE {2024-29}.txt", "r", encoding="utf-8") as f:
+        data = f.read()
+        st.sidebar.success("Sample chat loaded , Click Show Analysis Now")
+
+# 🔥 Single condition for both cases
+if data is not None:
     df = preprocess.preprocess(data)
     st.dataframe(df)
 
@@ -68,6 +84,45 @@ if uploaded_file is not None:
 
         most_common_words_df = most_common_words(selected_user,df)
         # st.dataframe(most_common_words_df)
+
+
+        st.title("Monthly Timeline")
+        timeline = helper.monthly_timeline(selected_user,df)
+        fig,ax = plt.subplots()
+        ax.plot(timeline["time"],timeline["message"],color="green")
+        plt.xticks(rotation="vertical")
+        st.pyplot(fig)
+
+        st.title("Daily Timeline")
+        timeline = helper.daily_timeline(selected_user, df)
+        fig, ax = plt.subplots()
+        ax.plot(timeline["date"], timeline["message"], color="black")
+        plt.xticks(rotation="vertical")
+        st.pyplot(fig)
+
+        st.title('Activity Map')
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.header("Most busy day")
+            busy_day = helper.week_activity_map(selected_user,df)
+            fig,ax = plt.subplots()
+            ax.bar(busy_day.index,busy_day.values,color="blue")
+            plt.xticks(rotation="vertical")
+            st.pyplot(fig)
+        with col2:
+            st.header("Most busy month")
+            busy_month = helper.monthly_activity_map(selected_user, df)
+            fig, ax = plt.subplots()
+            ax.bar(busy_month.index, busy_month.values, color='orange')
+            plt.xticks(rotation='vertical')
+            st.pyplot(fig)
+
+        st.title("Weekly Activity Map")
+        user_heatmap = helper.week_activity_map(selected_user,df)
+        fig,ax = plt.subplots()
+        ax = sns.heatmap(user_heatmap.to_frame(),annot=True,cmap="YlOrRd")
+        st.pyplot(fig)
 
         def  add_labels(X,y):
             for i in range(X.shape[0]):
